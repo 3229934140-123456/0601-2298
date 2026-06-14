@@ -1,0 +1,110 @@
+@use '@/styles/variables.scss' as *;
+
+.statusSteps {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-lg;
+}
+
+.steps {
+  position: relative;
+  padding-left: 0;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  padding-bottom: $spacing-lg;
+
+  &:last-child {
+    padding-bottom: 0;
+
+    .line {
+      display: none;
+    }
+  }
+}
+
+.dot {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: $radius-round;
+  background: $color-border;
+  flex-shrink: 0;
+  margin-top: 6rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.active {
+  .dot {
+    background: $color-primary;
+    box-shadow: 0 0 0 6rpx rgba(30, 111, 255, 0.2);
+  }
+}
+
+.done {
+  .dot {
+    background: $color-success;
+  }
+}
+
+.line {
+  position: absolute;
+  left: 11rpx;
+  top: 30rpx;
+  width: 2rpx;
+  height: calc(100% - 30rpx);
+  background: $color-divider;
+}
+
+.done .line {
+  background: $color-success;
+}
+
+.content {
+  flex: 1;
+  margin-left: $spacing-md;
+  padding-bottom: 0;
+}
+
+.stepTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-xs;
+}
+
+.active .stepTitle {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.done .stepTitle {
+  color: $color-text-secondary;
+}
+
+.stepDesc {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  line-height: $line-height-normal;
+}
+
+.active .stepDesc {
+  color: $color-text-secondary;
+}
+
+.time {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+}
