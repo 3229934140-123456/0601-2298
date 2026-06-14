@@ -18,6 +18,8 @@ const RecordsPage: React.FC = () => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showFaultReport, setShowFaultReport] = useState(false);
+  const [isVoicePlaying, setIsVoicePlaying] = useState(false);
 
   useEffect(() => {
     console.log('[Records] 页面初始化');
@@ -77,11 +79,19 @@ const RecordsPage: React.FC = () => {
   };
 
   const handleShareFleet = () => {
-    console.log('[Records] 分享给车队');
-    Taro.showToast({
-      title: '已生成故障单分享给车队',
-      icon: 'success'
-    });
+    console.log('[Records] 查看故障单');
+    if (currentRecord) {
+      setShowFaultReport(true);
+    }
+  };
+
+  const handlePlayFaultReportVoice = () => {
+    console.log('[Records] 播放故障单语音');
+    setIsVoicePlaying(true);
+    Taro.showToast({ title: '正在播放语音...', icon: 'none' });
+    setTimeout(() => {
+      setIsVoicePlaying(false);
+    }, 3000);
   };
 
   const handleGoReport = () => {
@@ -203,7 +213,8 @@ const RecordsPage: React.FC = () => {
                       className={styles.actionBtn}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleShareFleet();
+                        setCurrentRecord(record);
+                        setShowFaultReport(true);
                       }}
                     >
                       故障单
@@ -418,6 +429,160 @@ const RecordsPage: React.FC = () => {
                 onClick={handleSubmitRating}
               >
                 提交评价
+              </Button>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {showFaultReport && currentRecord && (
+        <View
+          className={styles.faultReportModal}
+          onClick={() => setShowFaultReport(false)}
+        >
+          <View
+            className={styles.faultReportContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <View className={styles.faultReportHeader}>
+              <View>
+                <Text className={styles.faultReportTitle}>故障维修单</Text>
+                <Text className={styles.faultReportOrderNo}>订单号：{currentRecord.orderNo}</Text>
+              </View>
+              <Button
+                className={styles.faultReportClose}
+                onClick={() => setShowFaultReport(false)}
+              >
+                ✕
+              </Button>
+            </View>
+
+            <ScrollView scrollY className={styles.faultReportBody}>
+              <View className={styles.faultReportSection}>
+                <Text className={styles.faultReportSectionTitle}>故障信息</Text>
+                <View className={styles.faultReportRow}>
+                  <Text className={styles.faultReportLabel}>故障类型</Text>
+                  <Text className={styles.faultReportValue}>
+                    {getFaultTypeLabel(currentRecord.faultType)}
+                  </Text>
+                </View>
+                <View className={styles.faultReportRow}>
+                  <Text className={styles.faultReportLabel}>故障描述</Text>
+                  <Text className={styles.faultReportValue}>{currentRecord.faultDesc}</Text>
+                </View>
+                <View className={styles.faultReportRow}>
+                  <Text className={styles.faultReportLabel}>发生时间</Text>
+                  <Text className={styles.faultReportValue}>
+                    {formatDate(currentRecord.date)}
+                  </Text>
+                </View>
+                <View className={styles.faultReportRow}>
+                  <Text className={styles.faultReportLabel}>发生地点</Text>
+                  <Text className={styles.faultReportValue}>
+                    {currentRecord.location.address}
+                  </Text>
+                </View>
+              </View>
+
+              {currentRecord.voiceUrl && (
+                <View className={styles.faultReportSection}>
+                  <Text className={styles.faultReportSectionTitle}>语音描述</Text>
+                  <View className={styles.faultReportVoice}>
+                    <Button
+                      className={styles.faultReportVoiceBtn}
+                      onClick={handlePlayFaultReportVoice}
+                    >
+                      {isVoicePlaying ? '⏸' : '▶'}
+                    </Button>
+                    <View className={styles.faultReportVoiceInfo}>
+                      <Text className={styles.faultReportVoiceText}>故障语音描述</Text>
+                      <Text className={styles.faultReportVoiceDuration}>
+                        时长 {formatVoiceDuration(currentRecord.voiceDuration || 0)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              <View className={styles.faultReportSection}>
+                <Text className={styles.faultReportSectionTitle}>车辆信息</Text>
+                <View className={styles.faultReportRow}>
+                  <Text className={styles.faultReportLabel}>车牌号</Text>
+                  <Text className={styles.faultReportValue}>
+                    {currentRecord.vehicle.plateNumber}
+                  </Text>
+                </View>
+                <View className={styles.faultReportRow}>
+                  <Text className={styles.faultReportLabel}>车型</Text>
+                  <Text className={styles.faultReportValue}>
+                    {currentRecord.vehicle.vehicleType}
+                  </Text>
+                </View>
+                <View className={styles.faultReportRow}>
+                  <Text className={styles.faultReportLabel}>载重/货物</Text>
+                  <Text className={styles.faultReportValue}>
+                    {currentRecord.vehicle.loadWeight} / {currentRecord.vehicle.cargoType}
+                  </Text>
+                </View>
+              </View>
+
+              <View className={styles.faultReportSection}>
+                <Text className={styles.faultReportSectionTitle}>服务信息</Text>
+                <View className={styles.faultReportRow}>
+                  <Text className={styles.faultReportLabel}>服务网点</Text>
+                  <Text className={styles.faultReportValue}>
+                    {currentRecord.servicePoint}
+                  </Text>
+                </View>
+                <View className={styles.faultReportRow}>
+                  <Text className={styles.faultReportLabel}>救援人员</Text>
+                  <Text className={styles.faultReportValue}>
+                    {currentRecord.rescuer || '已安排'}
+                  </Text>
+                </View>
+                <View className={styles.faultReportRow}>
+                  <Text className={styles.faultReportLabel}>维修费用</Text>
+                  <Text className={styles.faultReportValue}>¥{currentRecord.cost}</Text>
+                </View>
+                {currentRecord.rating > 0 && (
+                  <View className={styles.faultReportRow}>
+                    <Text className={styles.faultReportLabel}>服务评分</Text>
+                    <Text className={styles.faultReportValue}>
+                      {renderStars(currentRecord.rating)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {currentRecord.photos.length > 0 && (
+                <View className={styles.faultReportSection}>
+                  <Text className={styles.faultReportSectionTitle}>故障照片</Text>
+                  <View className={styles.faultReportPhotoList}>
+                    {currentRecord.photos.map((photo, index) => (
+                      <View key={index} className={styles.faultReportPhoto}>
+                        <Image
+                          className={styles.img}
+                          src={photo}
+                          mode="aspectFill"
+                        />
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+
+            <View className={styles.faultReportFooter}>
+              <Button
+                className={styles.faultReportShareBtn}
+                onClick={() => {
+                  Taro.showToast({
+                    title: '已分享给车队',
+                    icon: 'success'
+                  });
+                }}
+              >
+                分享给车队
               </Button>
             </View>
           </View>

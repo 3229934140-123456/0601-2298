@@ -1,6 +1,54 @@
 import { create } from 'zustand';
+import Taro from '@tarojs/taro';
 import type { RescueOrder, LocationInfo, VehicleInfo, FaultType, ServicePoint, RepairRecord, Reminder, Vehicle } from '@/types';
 import { mockRepairRecords } from '@/data/mockRecords';
+
+const STORAGE_KEY_RECORDS = 'rescue_repair_records';
+const STORAGE_KEY_CURRENT_ORDER = 'rescue_current_order';
+
+const loadRecordsFromStorage = (): RepairRecord[] | null => {
+  try {
+    const data = Taro.getStorageSync(STORAGE_KEY_RECORDS);
+    if (data) {
+      return JSON.parse(data) as RepairRecord[];
+    }
+  } catch (err) {
+    console.error('[Store] 读取维修记录失败:', err);
+  }
+  return null;
+};
+
+const saveRecordsToStorage = (records: RepairRecord[]) => {
+  try {
+    Taro.setStorageSync(STORAGE_KEY_RECORDS, JSON.stringify(records));
+  } catch (err) {
+    console.error('[Store] 保存维修记录失败:', err);
+  }
+};
+
+const loadCurrentOrderFromStorage = (): RescueOrder | null => {
+  try {
+    const data = Taro.getStorageSync(STORAGE_KEY_CURRENT_ORDER);
+    if (data) {
+      return JSON.parse(data) as RescueOrder;
+    }
+  } catch (err) {
+    console.error('[Store] 读取当前订单失败:', err);
+  }
+  return null;
+};
+
+const saveCurrentOrderToStorage = (order: RescueOrder | null) => {
+  try {
+    if (order) {
+      Taro.setStorageSync(STORAGE_KEY_CURRENT_ORDER, JSON.stringify(order));
+    } else {
+      Taro.removeStorageSync(STORAGE_KEY_CURRENT_ORDER);
+    }
+  } catch (err) {
+    console.error('[Store] 保存当前订单失败:', err);
+  }
+};
 
 interface RescueState {
   currentLocation: LocationInfo | null;
@@ -36,18 +84,30 @@ interface RescueState {
   initRepairRecords: () => void;
 }
 
+const initialRecords = loadRecordsFromStorage();
+const initialCurrentOrder = loadCurrentOrderFromStorage();
+
 const useRescueStore = create<RescueState>((set, get) => ({
   currentLocation: null,
-  currentOrder: null,
-  repairRecords: [],
+  currentOrder: initialCurrentOrder,
+  repairRecords: initialRecords || [],
   servicePoints: [],
   vehicles: [],
   reminders: [],
   isLocationLoading: false,
 
   setCurrentLocation: (location) => set({ currentLocation: location }),
-  setCurrentOrder: (order) => set({ currentOrder: order }),
-  setRepairRecords: (records) => set({ repairRecords: records }),
+
+  setCurrentOrder: (order) => {
+    set({ currentOrder: order });
+    saveCurrentOrderToStorage(order);
+  },
+
+  setRepairRecords: (records) => {
+    set({ repairRecords: records });
+    saveRecordsToStorage(records);
+  },
+
   setServicePoints: (points) => set({ servicePoints: points }),
   setVehicles: (vehicles) => set({ vehicles }),
   setReminders: (reminders) => set({ reminders }),
@@ -57,6 +117,7 @@ const useRescueStore = create<RescueState>((set, get) => ({
     const { repairRecords } = get();
     if (repairRecords.length === 0) {
       set({ repairRecords: mockRepairRecords });
+      saveRecordsToStorage(mockRepairRecords);
     }
   },
 
@@ -77,6 +138,7 @@ const useRescueStore = create<RescueState>((set, get) => ({
       fleetShared: false
     };
     set({ currentOrder: order });
+    saveCurrentOrderToStorage(order);
     return order;
   },
 
@@ -88,6 +150,7 @@ const useRescueStore = create<RescueState>((set, get) => ({
       updated.completedAt = new Date().toISOString();
     }
     set({ currentOrder: updated });
+    saveCurrentOrderToStorage(updated);
   },
 
   completeOrder: (orderId) => {
@@ -123,25 +186,30 @@ const useRescueStore = create<RescueState>((set, get) => ({
 
     const exists = repairRecords.some(r => r.id === orderId);
     const updatedRecords = exists
-      ? repairRecords.map(r => r.id === orderId ? { ...r, status: 'completed' } : r)
+      ? repairRecords.map(r => r.id === orderId ? { ...newRecord, rating: r.rating, comment: r.comment } : r)
       : [newRecord, ...repairRecords];
 
     set({
       currentOrder: completedOrder,
       repairRecords: updatedRecords
     });
+    saveCurrentOrderToStorage(completedOrder);
+    saveRecordsToStorage(updatedRecords);
   },
 
   rateOrder: (orderId, rating, comment) => {
     const { currentOrder, repairRecords } = get();
+    let updatedCurrentOrder = currentOrder;
     if (currentOrder && currentOrder.id === orderId) {
-      const updated = { ...currentOrder, rating, comment };
-      set({ currentOrder: updated });
+      updatedCurrentOrder = { ...currentOrder, rating, comment };
+      set({ currentOrder: updatedCurrentOrder });
+      saveCurrentOrderToStorage(updatedCurrentOrder);
     }
     const updatedRecords = repairRecords.map(r =>
       r.id === orderId ? { ...r, rating, comment } : r
     );
     set({ repairRecords: updatedRecords });
+    saveRecordsToStorage(updatedRecords);
   },
 
   toggleFleetShare: (orderId) => {
@@ -149,6 +217,7 @@ const useRescueStore = create<RescueState>((set, get) => ({
     if (currentOrder && currentOrder.id === orderId) {
       const updated = { ...currentOrder, fleetShared: !currentOrder.fleetShared };
       set({ currentOrder: updated });
+      saveCurrentOrderToStorage(updated);
     }
   }
 }));
