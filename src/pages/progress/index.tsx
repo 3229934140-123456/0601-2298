@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, Image } from '@tarojs/components';
+import { View, Text, Button, Image, Input } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
 import styles from './index.module.scss';
@@ -20,21 +20,13 @@ const mockRescuer = {
   plateNumber: '豫A·12345救'
 };
 
-const stepList: { key: RescueStatus; label: string }[] = [
-  { key: 'pending', label: '提交申请' },
-  { key: 'assigned', label: '系统派单' },
-  { key: 'onTheWay', label: '救援出发' },
-  { key: 'arrived', label: '到达现场' },
-  { key: 'repairing', label: '维修中' },
-  { key: 'completed', label: '维修完成' }
-];
-
 const ProgressPage: React.FC = () => {
-  const { currentOrder, updateOrderStatus, rateOrder, toggleFleetShare } = useRescueStore();
+  const { currentOrder, completeOrder, rateOrder, toggleFleetShare, setCurrentOrder } = useRescueStore();
   const [order, setOrder] = useState<RescueOrder | null>(null);
   const [showRating, setShowRating] = useState(false);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     console.log('[Progress] 页面初始化');
@@ -53,6 +45,8 @@ const ProgressPage: React.FC = () => {
       faultType: 'tire',
       faultDesc: '右后轮胎爆胎，需要更换新轮胎',
       photos: ['https://picsum.photos/id/101/300/300'],
+      voiceUrl: 'voice://mock_001.mp3',
+      voiceDuration: 35,
       vehicle: {
         plateNumber: '豫A88888',
         vehicleType: '重型卡车',
@@ -76,16 +70,7 @@ const ProgressPage: React.FC = () => {
       fleetShared: false
     };
     setOrder(mockOrder);
-  };
-
-  const getCurrentStepIndex = (status: RescueStatus): number => {
-    return stepList.findIndex(s => s.key === status);
-  };
-
-  const getStepStatus = (index: number, currentIndex: number): 'done' | 'active' | 'pending' => {
-    if (index < currentIndex) return 'done';
-    if (index === currentIndex) return 'active';
-    return 'pending';
+    setCurrentOrder(mockOrder);
   };
 
   const handleCallRescuer = () => {
@@ -120,8 +105,8 @@ const ProgressPage: React.FC = () => {
       confirmText: '确认完成',
       cancelText: '取消',
       success: (res) => {
-        if (res.confirm) {
-          updateOrderStatus('completed');
+        if (res.confirm && order) {
+          completeOrder(order.id);
           setOrder(prev => prev ? { ...prev, status: 'completed', completedAt: new Date().toISOString() } : null);
           setShowRating(true);
           Taro.showToast({ title: '已确认完成', icon: 'success' });
@@ -144,9 +129,10 @@ const ProgressPage: React.FC = () => {
     console.log('[Progress] 分享给车队');
     if (order) {
       toggleFleetShare(order.id);
-      setOrder(prev => prev ? { ...prev, fleetShared: !prev.fleetShared } : null);
+      const newShared = !order.fleetShared;
+      setOrder(prev => prev ? { ...prev, fleetShared: newShared } : null);
       Taro.showToast({
-        title: order.fleetShared ? '已取消分享' : '已分享给车队',
+        title: newShared ? '已分享给车队' : '已取消分享',
         icon: 'success'
       });
     }
@@ -161,6 +147,15 @@ const ProgressPage: React.FC = () => {
     });
   };
 
+  const handlePlayVoice = () => {
+    console.log('[Progress] 播放语音');
+    setIsPlaying(true);
+    Taro.showToast({ title: '正在播放语音...', icon: 'none' });
+    setTimeout(() => {
+      setIsPlaying(false);
+    }, 3000);
+  };
+
   const getEtaText = (): string => {
     if (!order?.estimatedArrivalTime) return '--';
     const eta = new Date(order.estimatedArrivalTime).getTime();
@@ -172,6 +167,12 @@ const ProgressPage: React.FC = () => {
       return `${hours}小时${mins}分钟`;
     }
     return `${diff}分钟`;
+  };
+
+  const formatVoiceDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (!order) {
@@ -188,8 +189,8 @@ const ProgressPage: React.FC = () => {
     );
   }
 
-  const currentStepIndex = getCurrentStepIndex(order.status);
   const isCompleted = order.status === 'completed';
+  const isInProgress = !isCompleted && order.status !== 'cancelled';
 
   return (
     <View className={styles.page}>
@@ -306,6 +307,36 @@ const ProgressPage: React.FC = () => {
             <Text className={styles.orderLabel}>故障描述</Text>
             <Text className={styles.orderValue}>{order.faultDesc || '无'}</Text>
           </View>
+          <View className={styles.orderRow}>
+            <Text className={styles.orderLabel}>语音描述</Text>
+            <View className={styles.orderValue}>
+              {order.voiceUrl ? (
+                <View className={styles.voicePlayer}>
+                  <Button className={styles.voicePlayBtn} onClick={handlePlayVoice}>
+                    {isPlaying ? '⏸' : '▶'}
+                  </Button>
+                  <View className={styles.voiceInfo}>
+                    <Text className={styles.voiceLabel}>故障语音描述</Text>
+                    <Text className={styles.voiceDuration}>
+                      {formatVoiceDuration(order.voiceDuration || 0)}
+                    </Text>
+                    <View className={styles.voiceWaveform}>
+                      {[...Array(8)].map((_, i) => (
+                        <View
+                          key={i}
+                          className={classnames(styles.voiceWaveBar, {
+                            [styles.active]: isPlaying && i % 2 === 0
+                          })}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <Text className={styles.emptyVoice}>无语音描述</Text>
+              )}
+            </View>
+          </View>
         </View>
       </View>
 
@@ -329,7 +360,7 @@ const ProgressPage: React.FC = () => {
       )}
 
       <View className={styles.bottomBar}>
-        {!isCompleted ? (
+        {isInProgress ? (
           <>
             <Button
               className={classnames(styles.btn, styles.btnSecondary)}
@@ -344,7 +375,7 @@ const ProgressPage: React.FC = () => {
               联系救援员
             </Button>
           </>
-        ) : (
+        ) : isCompleted ? (
           <>
             <Button
               className={classnames(styles.btn, styles.btnSecondary)}
@@ -352,17 +383,42 @@ const ProgressPage: React.FC = () => {
             >
               {order.fleetShared ? '取消分享' : '分享车队'}
             </Button>
-            {!order.rating && (
+            {!order.rating ? (
               <Button
                 className={classnames(styles.btn, styles.btnSuccess)}
                 onClick={() => setShowRating(true)}
               >
                 评价服务
               </Button>
+            ) : (
+              <Button
+                className={classnames(styles.btn, styles.btnDisabled)}
+                disabled
+              >
+                已评价
+              </Button>
             )}
           </>
+        ) : (
+          <Button
+            className={classnames(styles.btn, styles.btnPrimary)}
+            onClick={handleGoReport}
+          >
+            发起救援
+          </Button>
         )}
       </View>
+
+      {isInProgress && (
+        <View className={styles.confirmCompleteBar}>
+          <Button
+            className={styles.confirmCompleteBtn}
+            onClick={handleConfirmComplete}
+          >
+            ✓ 确认服务完成
+          </Button>
+        </View>
+      )}
 
       {showRating && (
         <View

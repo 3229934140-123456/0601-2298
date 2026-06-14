@@ -176,13 +176,27 @@ const ReportPage: React.FC = () => {
         faultDesc,
         photos,
         vehicle,
-        location: location!
+        location: location!,
+        voiceUrl: hasVoice ? 'voice://record_' + Date.now() + '.mp3' : undefined,
+        voiceDuration: hasVoice ? recordTime || 30 : undefined
       });
+
+      const mockRescuer = {
+        id: 'r001',
+        name: '张师傅',
+        phone: '13800138000',
+        avatar: '',
+        rating: 4.9,
+        orderCount: 328,
+        vehicle: '救援拖车',
+        plateNumber: '豫A·12345救'
+      };
 
       const assignedOrder = {
         ...order,
         status: 'assigned' as const,
         servicePoint: mockServicePoints[0],
+        rescuer: mockRescuer,
         estimatedArrivalTime: new Date(Date.now() + 25 * 60 * 1000).toISOString()
       };
       setCurrentOrder(assignedOrder);

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { RescueOrder, LocationInfo, VehicleInfo, FaultType, ServicePoint, RepairRecord, Reminder, Vehicle } from '@/types';
+import { mockRepairRecords } from '@/data/mockRecords';
 
 interface RescueState {
   currentLocation: LocationInfo | null;
@@ -24,11 +25,15 @@ interface RescueState {
     photos: string[];
     vehicle: VehicleInfo;
     location: LocationInfo;
+    voiceUrl?: string;
+    voiceDuration?: number;
   }) => RescueOrder;
 
   updateOrderStatus: (status: RescueOrder['status']) => void;
+  completeOrder: (orderId: string) => void;
   rateOrder: (orderId: string, rating: number, comment: string) => void;
   toggleFleetShare: (orderId: string) => void;
+  initRepairRecords: () => void;
 }
 
 const useRescueStore = create<RescueState>((set, get) => ({
@@ -48,7 +53,14 @@ const useRescueStore = create<RescueState>((set, get) => ({
   setReminders: (reminders) => set({ reminders }),
   setIsLocationLoading: (loading) => set({ isLocationLoading: loading }),
 
-  createRescueOrder: ({ faultType, faultDesc, photos, vehicle, location }) => {
+  initRepairRecords: () => {
+    const { repairRecords } = get();
+    if (repairRecords.length === 0) {
+      set({ repairRecords: mockRepairRecords });
+    }
+  },
+
+  createRescueOrder: ({ faultType, faultDesc, photos, vehicle, location, voiceUrl, voiceDuration }) => {
     const order: RescueOrder = {
       id: Date.now().toString(),
       orderNo: 'R' + Date.now().toString().slice(-8),
@@ -56,6 +68,8 @@ const useRescueStore = create<RescueState>((set, get) => ({
       faultType,
       faultDesc,
       photos,
+      voiceUrl,
+      voiceDuration,
       vehicle,
       location,
       createdAt: new Date().toISOString(),
@@ -74,6 +88,48 @@ const useRescueStore = create<RescueState>((set, get) => ({
       updated.completedAt = new Date().toISOString();
     }
     set({ currentOrder: updated });
+  },
+
+  completeOrder: (orderId) => {
+    const { currentOrder, repairRecords } = get();
+    if (!currentOrder || currentOrder.id !== orderId) return;
+
+    const completedAt = new Date().toISOString();
+    const completedOrder = {
+      ...currentOrder,
+      status: 'completed' as const,
+      completedAt,
+      updatedAt: completedAt
+    };
+
+    const newRecord: RepairRecord = {
+      id: currentOrder.id,
+      orderNo: currentOrder.orderNo,
+      faultType: currentOrder.faultType,
+      faultDesc: currentOrder.faultDesc,
+      date: new Date().toISOString(),
+      servicePoint: currentOrder.servicePoint?.name || '未知服务点',
+      cost: currentOrder.cost || 0,
+      rating: currentOrder.rating || 0,
+      status: 'completed',
+      photos: currentOrder.photos,
+      voiceUrl: currentOrder.voiceUrl,
+      voiceDuration: currentOrder.voiceDuration,
+      vehicle: currentOrder.vehicle,
+      location: currentOrder.location,
+      rescuer: currentOrder.rescuer?.name,
+      comment: currentOrder.comment
+    };
+
+    const exists = repairRecords.some(r => r.id === orderId);
+    const updatedRecords = exists
+      ? repairRecords.map(r => r.id === orderId ? { ...r, status: 'completed' } : r)
+      : [newRecord, ...repairRecords];
+
+    set({
+      currentOrder: completedOrder,
+      repairRecords: updatedRecords
+    });
   },
 
   rateOrder: (orderId, rating, comment) => {

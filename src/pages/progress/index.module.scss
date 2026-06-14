@@ -303,6 +303,12 @@
   color: $color-text-white;
 }
 
+.btnDisabled {
+  background: $color-bg-hover;
+  color: $color-text-tertiary;
+  opacity: 0.8;
+}
+
 .stepsSection {
   // 步骤区域
 }
@@ -482,4 +488,95 @@
     display: block;
     line-height: $line-height-normal;
   }
+}
+
+.voicePlayer {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-md;
+  margin-top: $spacing-sm;
+}
+
+.voicePlayBtn {
+  @include button-reset;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+  color: $color-text-white;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: $spacing-md;
+}
+
+.voiceInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.voiceLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+}
+
+.voiceDuration {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.voiceWaveform {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  height: 40rpx;
+  margin-top: $spacing-xs;
+}
+
+.voiceWaveBar {
+  width: 6rpx;
+  height: 100%;
+  background: $color-primary;
+  border-radius: 3rpx;
+  opacity: 0.5;
+  flex: 1;
+
+  &.active {
+    opacity: 1;
+  }
+}
+
+.emptyVoice {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.confirmCompleteBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom) + 180rpx);
+  padding: 0 $page-padding;
+  z-index: 9;
+}
+
+.confirmCompleteBtn {
+  @include button-reset;
+  width: 100%;
+  height: 88rpx;
+  border-radius: 44rpx;
+  background: linear-gradient(135deg, $color-success 0%, #33c95f 100%);
+  color: $color-text-white;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(0, 180, 42, 0.3);
 }

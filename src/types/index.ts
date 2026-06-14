@@ -98,6 +98,8 @@ export interface RepairRecord {
   rating: number;
   status: 'completed' | 'inProgress' | 'cancelled';
   photos: string[];
+  voiceUrl?: string;
+  voiceDuration?: number;
   vehicle: VehicleInfo;
   location: LocationInfo;
   rescuer?: string;

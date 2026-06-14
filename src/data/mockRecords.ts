@@ -15,6 +15,8 @@ export const mockRepairRecords: RepairRecord[] = [
       'https://picsum.photos/id/101/300/300',
       'https://picsum.photos/id/102/300/300'
     ],
+    voiceUrl: 'voice://r001.mp3',
+    voiceDuration: 42,
     vehicle: {
       plateNumber: '豫A88888',
       vehicleType: '重型卡车',
@@ -46,6 +48,8 @@ export const mockRepairRecords: RepairRecord[] = [
     photos: [
       'https://picsum.photos/id/103/300/300'
     ],
+    voiceUrl: 'voice://r002.mp3',
+    voiceDuration: 28,
     vehicle: {
       plateNumber: '豫A88888',
       vehicleType: '重型卡车',

@@ -449,3 +449,71 @@
   background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
   color: $color-text-white;
 }
+
+.detailVoice {
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+}
+
+.detailVoicePlayBtn {
+  @include button-reset;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+  color: $color-text-white;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: $spacing-md;
+}
+
+.detailVoiceInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.detailVoiceLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+}
+
+.detailVoiceDuration {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.detailVoiceWave {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  height: 36rpx;
+  margin-top: $spacing-xs;
+}
+
+.detailVoiceWaveBar {
+  width: 6rpx;
+  height: 100%;
+  background: $color-primary;
+  border-radius: 3rpx;
+  opacity: 0.5;
+  flex: 1;
+
+  &.active {
+    opacity: 1;
+  }
+}
+
+.detailVoiceEmpty {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  padding: $spacing-md 0;
+}

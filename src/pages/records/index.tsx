@@ -1,27 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, Image, ScrollView } from '@tarojs/components';
+import { View, Text, Button, Image, ScrollView, Input } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
 import styles from './index.module.scss';
-import { mockRepairRecords } from '@/data/mockRecords';
+import useRescueStore from '@/store/useRescueStore';
 import type { RepairRecord } from '@/types';
 import { getFaultTypeLabel, formatDate } from '@/utils';
 
 type FilterType = 'all' | 'completed' | 'inProgress';
 
 const RecordsPage: React.FC = () => {
-  const [records, setRecords] = useState<RepairRecord[]>([]);
+  const { repairRecords, initRepairRecords, rateOrder } = useRescueStore();
   const [filter, setFilter] = useState<FilterType>('all');
   const [showDetail, setShowDetail] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<RepairRecord | null>(null);
   const [showRating, setShowRating] = useState(false);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     console.log('[Records] 页面初始化');
-    setRecords(mockRepairRecords);
-  }, []);
+    initRepairRecords();
+  }, [initRepairRecords]);
+
+  useEffect(() => {
+    if (showDetail && currentRecord) {
+      const updated = repairRecords.find(r => r.id === currentRecord.id);
+      if (updated) {
+        setCurrentRecord(updated);
+      }
+    }
+  }, [repairRecords, showDetail, currentRecord?.id]);
 
   const tabs: { key: FilterType; label: string }[] = [
     { key: 'all', label: '全部' },
@@ -29,7 +39,7 @@ const RecordsPage: React.FC = () => {
     { key: 'inProgress', label: '进行中' }
   ];
 
-  const filteredRecords = records.filter((record) => {
+  const filteredRecords = repairRecords.filter((record) => {
     if (filter === 'all') return true;
     return record.status === filter;
   });
@@ -60,16 +70,10 @@ const RecordsPage: React.FC = () => {
   const handleSubmitRating = () => {
     console.log('[Records] 提交评价:', rating, comment);
     if (currentRecord) {
-      const updated = records.map(r =>
-        r.id === currentRecord.id
-          ? { ...r, rating, comment, status: 'completed' as const }
-          : r
-      );
-      setRecords(updated);
-      setCurrentRecord(prev => prev ? { ...prev, rating, comment } : null);
+      rateOrder(currentRecord.id, rating, comment);
+      Taro.showToast({ title: '评价成功', icon: 'success' });
     }
     setShowRating(false);
-    Taro.showToast({ title: '评价成功', icon: 'success' });
   };
 
   const handleShareFleet = () => {
@@ -87,6 +91,21 @@ const RecordsPage: React.FC = () => {
         console.error('[Records] 跳转失败:', err);
       }
     });
+  };
+
+  const handlePlayVoice = () => {
+    console.log('[Records] 播放语音');
+    setIsPlaying(true);
+    Taro.showToast({ title: '正在播放语音...', icon: 'none' });
+    setTimeout(() => {
+      setIsPlaying(false);
+    }, 3000);
+  };
+
+  const formatVoiceDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const renderStars = (count: number) => {
@@ -257,6 +276,38 @@ const RecordsPage: React.FC = () => {
                 <Text className={styles.faultDescText}>
                   {currentRecord.faultDesc}
                 </Text>
+              </View>
+
+              <View className={styles.detailSection}>
+                <Text className={styles.detailSectionTitle}>语音描述</Text>
+                {currentRecord.voiceUrl ? (
+                  <View className={styles.detailVoice}>
+                    <Button
+                      className={styles.detailVoicePlayBtn}
+                      onClick={handlePlayVoice}
+                    >
+                      {isPlaying ? '⏸' : '▶'}
+                    </Button>
+                    <View className={styles.detailVoiceInfo}>
+                      <Text className={styles.detailVoiceLabel}>故障语音描述</Text>
+                      <Text className={styles.detailVoiceDuration}>
+                        {formatVoiceDuration(currentRecord.voiceDuration || 0)}
+                      </Text>
+                      <View className={styles.detailVoiceWave}>
+                        {[...Array(8)].map((_, i) => (
+                          <View
+                            key={i}
+                            className={classnames(styles.detailVoiceWaveBar, {
+                              [styles.active]: isPlaying && i % 2 === 0
+                            })}
+                          />
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+                ) : (
+                  <Text className={styles.detailVoiceEmpty}>无语音描述</Text>
+                )}
               </View>
 
               <View className={styles.detailSection}>
